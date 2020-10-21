@@ -3097,6 +3097,7 @@ static uint32_t SD_FindSCR(SD_HandleTypeDef *hsd, uint32_t *pSCR)
     return errorstate;
   }
 
+#if 0
   while(!__HAL_SD_GET_FLAG(hsd, SDMMC_FLAG_RXOVERR | SDMMC_FLAG_DCRCFAIL | SDMMC_FLAG_DTIMEOUT | SDMMC_FLAG_DBCKEND))
   {
     if(__HAL_SD_GET_FLAG(hsd, SDMMC_FLAG_RXDAVL))
@@ -3109,6 +3110,25 @@ static uint32_t SD_FindSCR(SD_HandleTypeDef *hsd, uint32_t *pSCR)
     {
       return HAL_SD_ERROR_TIMEOUT;
     }
+  }
+#endif
+  
+  while(!__HAL_SD_GET_FLAG(hsd, SDMMC_FLAG_RXOVERR | SDMMC_FLAG_DCRCFAIL | SDMMC_FLAG_DTIMEOUT ))
+  {
+    while(__HAL_SD_GET_FLAG(hsd, SDMMC_FLAG_RXDAVL))
+    {
+      tempscr[index++] = SDMMC_ReadFIFO(hsd->Instance);
+    }
+
+    if (__HAL_SD_GET_FLAG(hsd, SDMMC_FLAG_DBCKEND) && !__HAL_SD_GET_FLAG(hsd, SDMMC_FLAG_RXDAVL))
+    {  // end of data transfer from Card and from FIFO
+      break;
+    }
+
+    if((HAL_GetTick() - tickstart) >=  SDMMC_DATATIMEOUT)
+    {
+      return HAL_SD_ERROR_TIMEOUT;
+    }  
   }
 
   if(__HAL_SD_GET_FLAG(hsd, SDMMC_FLAG_DTIMEOUT))
